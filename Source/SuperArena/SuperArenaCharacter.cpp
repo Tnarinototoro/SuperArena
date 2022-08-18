@@ -66,7 +66,8 @@ void ASuperArenaCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &ASuperArenaCharacter::SprintEnd);
 	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &ASuperArenaCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right / Left", this, &ASuperArenaCharacter::MoveRight);
-
+	PlayerInputComponent->BindAction("MagnifyTheBall", IE_Pressed, this, &ASuperArenaCharacter::TryToMagnifyTheBall);
+	
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
@@ -117,22 +118,13 @@ void ASuperArenaCharacter::ForcePush()
 			ECC_WorldDynamic, CubicShape);
 	if (Sweep && VFX_ForcePush != nullptr)
 	{
-		UNiagaraFunctionLibrary::
-			SpawnSystemAtLocation(
-				GetWorld(), 
-				VFX_ForcePush, 
-				EndPoint, 
-				this->GetActorRotation());
-	}
 
-	if (Sweep)
-	{
 		for (const auto& HitResult : BallHitResults)
 		{
 			auto ActorGot = HitResult.GetActor();
-			if (ActorGot!=nullptr&&ActorGot != this)
+			if (ActorGot != nullptr && ActorGot != this)
 			{
-				UStaticMeshComponent* HitCompo = 
+				UStaticMeshComponent* HitCompo =
 					Cast<UStaticMeshComponent>
 					(ActorGot->GetRootComponent());
 
@@ -140,14 +132,27 @@ void ASuperArenaCharacter::ForcePush()
 				{
 					return;
 				}
-				HitCompo->AddRadialImpulse(StartPoint,
-					ForceDistanceOffset * 2,
-					ForcePower,ERadialImpulseFalloff::RIF_Linear,
-					true
+				if (HitCompo->ComponentHasTag(FName("Ball")))
+				{
+					HitCompo->AddRadialImpulse(StartPoint,
+						ForceDistanceOffset * 2,
+						ForcePower, ERadialImpulseFalloff::RIF_Linear,
+						true
 					);
+					UNiagaraFunctionLibrary::
+						SpawnSystemAtLocation(
+							GetWorld(),
+							VFX_ForcePush,
+							EndPoint,
+							this->GetActorRotation());
+					break;
+				}
 			}
 		}
+		
 	}
+
+
 	
 }
 
@@ -177,6 +182,68 @@ void ASuperArenaCharacter::SprintEnd()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SprintEnd Movement Compo NULL"));
 	}
+}
+
+void ASuperArenaCharacter::TryToMagnifyTheBall()
+{
+	bool GotBall = (CapturedBall != nullptr);
+	if (MagnifiedBall)
+	{
+
+	}
+	else
+	{
+
+		TArray<FHitResult> BallHitResults;
+		const FVector StartPoint = this->GetActorLocation();
+		const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ForceDistanceOffset;
+		const FCollisionShape CubicShape = FCollisionShape::MakeBox(FVector(ForceDistanceOffset));
+		const bool Sweep = GetWorld()->
+			SweepMultiByChannel
+			(BallHitResults, StartPoint, EndPoint,
+				this->GetActorQuat(),
+				ECC_WorldDynamic, CubicShape);
+		if (Sweep)
+		{
+
+			for (const auto& HitResult : BallHitResults)
+			{
+				auto ActorGot = HitResult.GetActor();
+				if (ActorGot != nullptr && ActorGot != this)
+				{
+					UStaticMeshComponent* HitCompo =
+						Cast<UStaticMeshComponent>
+						(ActorGot->GetRootComponent());
+
+					if (HitCompo == nullptr)
+					{
+						return;
+					}
+					if (HitCompo->ComponentHasTag(FName("Ball")))
+					{
+
+						MagnifiedBall = true;
+						CapturedBall = ActorGot;
+						CapturedBall->SetActorRelativeScale3D(FVector(2));
+						GetWorld()->GetTimerManager().SetTimer(MagnifyTimer,this,&ASuperArenaCharacter::ResetTheBall, TimeToResetTheBallSize, false, -1);
+						break;
+					}
+				}
+			}
+
+		}
+	}
+	
+}
+
+void ASuperArenaCharacter::ResetTheBall()
+{
+	MagnifiedBall = false;
+
+
+	CapturedBall->SetActorScale3D(FVector(1));
+	CapturedBall = nullptr;
+
 }
 
 void ASuperArenaCharacter::MoveForward(float Value)

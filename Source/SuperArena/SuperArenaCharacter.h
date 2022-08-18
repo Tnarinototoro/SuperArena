@@ -19,6 +19,11 @@ class ASuperArenaCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
+	AActor* CapturedBall=nullptr;
+
+	bool MagnifiedBall = false;
+
+	FTimerHandle MagnifyTimer;
 public:
 	ASuperArenaCharacter();
 
@@ -33,9 +38,15 @@ public:
 	UPROPERTY(EditAnywhere)
 	UNiagaraSystem* VFX_ForcePush;
 
+	UPROPERTY(EditAnywhere)
+	float TimeToResetTheBallSize = 2;
+
 	void ForcePush();
 	void SprintStart();
 	void SprintEnd();
+
+	void TryToMagnifyTheBall();
+	void ResetTheBall();
 
 protected:
 
