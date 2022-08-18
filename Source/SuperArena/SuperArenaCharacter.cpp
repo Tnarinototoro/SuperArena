@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "NiagaraFunctionLibrary.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ASuperArenaCharacter
@@ -15,7 +16,7 @@ ASuperArenaCharacter::ASuperArenaCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-
+	
 	// set our turn rate for input
 	TurnRateGamepad = 50.f;
 
@@ -60,7 +61,9 @@ void ASuperArenaCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 	check(PlayerInputComponent);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-
+	PlayerInputComponent->BindAction("ForcePush", IE_Pressed, this, &ASuperArenaCharacter::ForcePush);
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &ASuperArenaCharacter::SprintStart);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &ASuperArenaCharacter::SprintEnd);
 	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &ASuperArenaCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right / Left", this, &ASuperArenaCharacter::MoveRight);
 
@@ -97,6 +100,83 @@ void ASuperArenaCharacter::LookUpAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
+}
+
+void ASuperArenaCharacter::ForcePush()
+{
+	UE_LOG(LogTemp, Warning, TEXT("ForcePush"));
+
+	TArray<FHitResult> BallHitResults;
+	const FVector StartPoint = this->GetActorLocation();
+	const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ForceDistanceOffset;
+	const FCollisionShape CubicShape = FCollisionShape::MakeBox(FVector(ForceDistanceOffset));
+	const bool Sweep = GetWorld()->
+		SweepMultiByChannel
+		(BallHitResults, StartPoint, EndPoint, 
+			this->GetActorQuat(), 
+			ECC_WorldDynamic, CubicShape);
+	if (Sweep && VFX_ForcePush != nullptr)
+	{
+		UNiagaraFunctionLibrary::
+			SpawnSystemAtLocation(
+				GetWorld(), 
+				VFX_ForcePush, 
+				EndPoint, 
+				this->GetActorRotation());
+	}
+
+	if (Sweep)
+	{
+		for (const auto& HitResult : BallHitResults)
+		{
+			auto ActorGot = HitResult.GetActor();
+			if (ActorGot!=nullptr&&ActorGot != this)
+			{
+				UStaticMeshComponent* HitCompo = 
+					Cast<UStaticMeshComponent>
+					(ActorGot->GetRootComponent());
+
+				if (HitCompo == nullptr)
+				{
+					return;
+				}
+				HitCompo->AddRadialImpulse(StartPoint,
+					ForceDistanceOffset * 2,
+					ForcePower,ERadialImpulseFalloff::RIF_Linear,
+					true
+					);
+			}
+		}
+	}
+	
+}
+
+void ASuperArenaCharacter::SprintStart()
+{
+	//UE_LOG(LogTemp, Warning, TEXT("SprintStart"));
+	auto moveCompo = GetCharacterMovement();
+	if (moveCompo != nullptr)
+	{
+		moveCompo->MaxWalkSpeed = 780.f;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SprintStart Movement Compo NULL"));
+	}
+}
+
+void ASuperArenaCharacter::SprintEnd()
+{
+	UE_LOG(LogTemp, Warning, TEXT("SprintEnd"));
+	auto moveCompo = GetCharacterMovement();
+	if (moveCompo != nullptr)
+	{
+		moveCompo->MaxWalkSpeed = 500.f;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SprintEnd Movement Compo NULL"));
+	}
 }
 
 void ASuperArenaCharacter::MoveForward(float Value)

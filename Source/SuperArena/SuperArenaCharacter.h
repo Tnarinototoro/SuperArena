@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "NiagaraSystem.h"
 #include "SuperArenaCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -24,6 +25,17 @@ public:
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
 	float TurnRateGamepad;
+
+	UPROPERTY(EditAnywhere)
+	float ForceDistanceOffset = 100;
+	UPROPERTY(EditAnywhere)
+	float ForcePower = 7500;
+	UPROPERTY(EditAnywhere)
+	UNiagaraSystem* VFX_ForcePush;
+
+	void ForcePush();
+	void SprintStart();
+	void SprintEnd();
 
 protected:
 
