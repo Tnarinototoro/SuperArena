@@ -224,7 +224,7 @@ void ASuperArenaCharacter::TryToMagnifyTheBall()
 
 						MagnifiedBall = true;
 						CapturedBall = ActorGot;
-						CapturedBall->SetActorRelativeScale3D(FVector(2));
+						CapturedBall->SetActorRelativeScale3D(FVector(RelativeScaling3DCoe));
 						GetWorld()->GetTimerManager().SetTimer(MagnifyTimer,this,&ASuperArenaCharacter::ResetTheBall, TimeToResetTheBallSize, false, -1);
 						break;
 					}

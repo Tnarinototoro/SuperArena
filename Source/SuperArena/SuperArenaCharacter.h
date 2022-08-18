@@ -31,16 +31,21 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)
 	float TurnRateGamepad;
 
+	//ForceDistance from the emitter
 	UPROPERTY(EditAnywhere)
 	float ForceDistanceOffset = 100;
+	//How hard you hit the ball
 	UPROPERTY(EditAnywhere)
 	float ForcePower = 7500;
+	//VFX part
 	UPROPERTY(EditAnywhere)
 	UNiagaraSystem* VFX_ForcePush;
-
+	//Time used to reset the ball after scaling
 	UPROPERTY(EditAnywhere)
 	float TimeToResetTheBallSize = 2;
-
+	//how bigger or smaller you scale the ball
+	UPROPERTY(EditAnywhere)
+	float RelativeScaling3DCoe = 2;
 	void ForcePush();
 	void SprintStart();
 	void SprintEnd();
