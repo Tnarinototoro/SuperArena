@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "NiagaraSystem.h"
+#include "Public/TheBall.h"
+
 #include "SuperArenaCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -26,6 +28,15 @@ class ASuperArenaCharacter : public ACharacter
 	FTimerHandle MagnifyTimer;
 public:
 	ASuperArenaCharacter();
+
+	UFUNCTION(Server, Reliable)
+	void ServerForcePush();
+
+	UFUNCTION(Server, Reliable)
+		void ServerTryToMagnifyTheBall();
+
+	UFUNCTION(Server, Reliable)
+		void ServerResetTheBall();
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Input)

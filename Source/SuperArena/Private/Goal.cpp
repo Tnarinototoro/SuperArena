@@ -26,21 +26,24 @@ void AGoal::BeginPlay()
 
 void AGoal::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor != this)
+	if (HasAuthority())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Goal overlapped with something"));
-		auto GotBall = Cast<ATheBall>(OtherActor);
-		if (GotBall)
+		if (OtherActor && OtherActor != this)
 		{
-			GotBall->Destroy();
-			GameState->TeamOneGoalScored(1);
-			auto SpawnedActor=GetWorld()->SpawnActor(BP_BallClass, &BallSpawnLocation);
-			SpawnedActor->GetRootComponent()->ComponentTags.Add(FName("Ball"));
-			UE_LOG(LogTemp, Warning, TEXT("%d"), GameState->TeamOneScore);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Not A Ball"));
+			UE_LOG(LogTemp, Warning, TEXT("Goal overlapped with something"));
+			auto GotBall = Cast<ATheBall>(OtherActor);
+			if (GotBall)
+			{
+				GotBall->Destroy();
+				GameState->TeamOneGoalScored(1);
+				auto SpawnedActor = GetWorld()->SpawnActor(BP_BallClass, &BallSpawnLocation);
+				SpawnedActor->GetRootComponent()->ComponentTags.Add(FName("Ball"));
+				UE_LOG(LogTemp, Warning, TEXT("%d"), GameState->TeamOneScore);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Not A Ball"));
+			}
 		}
 	}
 }

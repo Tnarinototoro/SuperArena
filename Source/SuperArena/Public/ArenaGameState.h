@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameStateBase.h"
+#include "Net/UnrealNetwork.h"
 #include "ArenaGameState.generated.h"
 
 /**
@@ -16,11 +17,13 @@ class SUPERARENA_API AArenaGameState : public AGameStateBase
 public:
 	AArenaGameState();
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 		int TeamOneScore;
-	UPROPERTY()
+	UPROPERTY(Replicated)
 		int TeamTwoScore;
 
 	void TeamOneGoalScored(int amount);
 	void TeamTwoGoalScored(int amount);
+void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 };

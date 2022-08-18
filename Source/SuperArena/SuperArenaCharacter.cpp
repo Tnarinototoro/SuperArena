@@ -52,6 +52,116 @@ ASuperArenaCharacter::ASuperArenaCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
+void ASuperArenaCharacter::ServerTryToMagnifyTheBall_Implementation()
+{
+	bool GotBall = (CapturedBall != nullptr);
+	if (MagnifiedBall)
+	{
+
+	}
+	else
+	{
+
+		TArray<FHitResult> BallHitResults;
+		const FVector StartPoint = this->GetActorLocation();
+		const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ForceDistanceOffset;
+		const FCollisionShape CubicShape = FCollisionShape::MakeBox(FVector(ForceDistanceOffset));
+		const bool Sweep = GetWorld()->
+			SweepMultiByChannel
+			(BallHitResults, StartPoint, EndPoint,
+				this->GetActorQuat(),
+				ECC_WorldDynamic, CubicShape);
+		if (Sweep)
+		{
+
+			for (const auto& HitResult : BallHitResults)
+			{
+				auto ActorGot = HitResult.GetActor();
+				if (ActorGot != nullptr && ActorGot != this)
+				{
+					UStaticMeshComponent* HitCompo =
+						Cast<UStaticMeshComponent>
+						(ActorGot->GetRootComponent());
+
+					if (HitCompo == nullptr)
+					{
+						return;
+					}
+					if (Cast<ATheBall>(ActorGot))
+					{
+
+						MagnifiedBall = true;
+						CapturedBall = ActorGot;
+						CapturedBall->SetActorRelativeScale3D(FVector(RelativeScaling3DCoe));
+						GetWorld()->GetTimerManager().SetTimer(MagnifyTimer, this, &ASuperArenaCharacter::ResetTheBall, TimeToResetTheBallSize, false, -1);
+						break;
+					}
+				}
+			}
+
+		}
+	}
+}
+
+void ASuperArenaCharacter::ServerResetTheBall_Implementation()
+{
+	MagnifiedBall = false;
+
+
+	CapturedBall->SetActorScale3D(FVector(1));
+	CapturedBall = nullptr;
+}
+
+
+
+
+void ASuperArenaCharacter::ServerForcePush_Implementation()
+{
+	UE_LOG(LogTemp, Warning, TEXT("ForcePush"));
+
+	TArray<FHitResult> BallHitResults;
+	const FVector StartPoint = this->GetActorLocation();
+	const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ForceDistanceOffset;
+	const FCollisionShape CubicShape = FCollisionShape::MakeBox(FVector(ForceDistanceOffset));
+	const bool Sweep = GetWorld()->
+		SweepMultiByChannel
+		(BallHitResults, StartPoint, EndPoint,
+			this->GetActorQuat(),
+			ECC_WorldDynamic, CubicShape);
+	if (Sweep && VFX_ForcePush != nullptr)
+	{
+
+		for (const auto& HitResult : BallHitResults)
+		{
+			auto ActorGot = HitResult.GetActor();
+			if (ActorGot != nullptr && ActorGot != this)
+			{
+				UStaticMeshComponent* HitCompo =
+					Cast<UStaticMeshComponent>
+					(ActorGot->GetRootComponent());
+
+				if (HitCompo == nullptr)
+				{
+					return;
+				}
+				if (Cast<ATheBall>(ActorGot))
+				{
+					HitCompo->AddRadialImpulse(StartPoint,
+						ForceDistanceOffset * 2,
+						ForcePower, ERadialImpulseFalloff::RIF_Linear,
+						true
+					);
+					
+
+					break;
+				}
+			}
+		}
+		
+	}
+}
+
+
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -110,48 +220,14 @@ void ASuperArenaCharacter::ForcePush()
 	TArray<FHitResult> BallHitResults;
 	const FVector StartPoint = this->GetActorLocation();
 	const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ForceDistanceOffset;
-	const FCollisionShape CubicShape = FCollisionShape::MakeBox(FVector(ForceDistanceOffset));
-	const bool Sweep = GetWorld()->
-		SweepMultiByChannel
-		(BallHitResults, StartPoint, EndPoint, 
-			this->GetActorQuat(), 
-			ECC_WorldDynamic, CubicShape);
-	if (Sweep && VFX_ForcePush != nullptr)
-	{
-
-		for (const auto& HitResult : BallHitResults)
-		{
-			auto ActorGot = HitResult.GetActor();
-			if (ActorGot != nullptr && ActorGot != this)
-			{
-				UStaticMeshComponent* HitCompo =
-					Cast<UStaticMeshComponent>
-					(ActorGot->GetRootComponent());
-
-				if (HitCompo == nullptr)
-				{
-					return;
-				}
-				if (HitCompo->ComponentHasTag(FName("Ball")))
-				{
-					HitCompo->AddRadialImpulse(StartPoint,
-						ForceDistanceOffset * 2,
-						ForcePower, ERadialImpulseFalloff::RIF_Linear,
-						true
-					);
-					UNiagaraFunctionLibrary::
-						SpawnSystemAtLocation(
-							GetWorld(),
-							VFX_ForcePush,
-							EndPoint,
-							this->GetActorRotation());
-					break;
-				}
-			}
-		}
-		
-	}
-
+	ServerForcePush();
+	
+	UNiagaraFunctionLibrary::
+		SpawnSystemAtLocation(
+			GetWorld(),
+			VFX_ForcePush,
+			EndPoint,
+			this->GetActorRotation());
 
 	
 }
@@ -186,63 +262,13 @@ void ASuperArenaCharacter::SprintEnd()
 
 void ASuperArenaCharacter::TryToMagnifyTheBall()
 {
-	bool GotBall = (CapturedBall != nullptr);
-	if (MagnifiedBall)
-	{
-
-	}
-	else
-	{
-
-		TArray<FHitResult> BallHitResults;
-		const FVector StartPoint = this->GetActorLocation();
-		const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ForceDistanceOffset;
-		const FCollisionShape CubicShape = FCollisionShape::MakeBox(FVector(ForceDistanceOffset));
-		const bool Sweep = GetWorld()->
-			SweepMultiByChannel
-			(BallHitResults, StartPoint, EndPoint,
-				this->GetActorQuat(),
-				ECC_WorldDynamic, CubicShape);
-		if (Sweep)
-		{
-
-			for (const auto& HitResult : BallHitResults)
-			{
-				auto ActorGot = HitResult.GetActor();
-				if (ActorGot != nullptr && ActorGot != this)
-				{
-					UStaticMeshComponent* HitCompo =
-						Cast<UStaticMeshComponent>
-						(ActorGot->GetRootComponent());
-
-					if (HitCompo == nullptr)
-					{
-						return;
-					}
-					if (HitCompo->ComponentHasTag(FName("Ball")))
-					{
-
-						MagnifiedBall = true;
-						CapturedBall = ActorGot;
-						CapturedBall->SetActorRelativeScale3D(FVector(RelativeScaling3DCoe));
-						GetWorld()->GetTimerManager().SetTimer(MagnifyTimer,this,&ASuperArenaCharacter::ResetTheBall, TimeToResetTheBallSize, false, -1);
-						break;
-					}
-				}
-			}
-
-		}
-	}
 	
+	ServerTryToMagnifyTheBall();
 }
 
 void ASuperArenaCharacter::ResetTheBall()
 {
-	MagnifiedBall = false;
-
-
-	CapturedBall->SetActorScale3D(FVector(1));
-	CapturedBall = nullptr;
+	ServerResetTheBall();
 
 }
 

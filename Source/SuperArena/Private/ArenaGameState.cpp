@@ -11,11 +11,21 @@ AArenaGameState::AArenaGameState()
 
 void AArenaGameState::TeamOneGoalScored(int amount)
 {
+	if(HasAuthority())
 	this->TeamOneScore += amount;
 }
 
 void AArenaGameState::TeamTwoGoalScored(int amount)
 {
+	if(HasAuthority())
 	this->TeamTwoScore += amount;
+}
+
+void AArenaGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AArenaGameState, TeamOneScore);
+	DOREPLIFETIME(AArenaGameState, TeamTwoScore);
+
 }
 
