@@ -1,6 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "SuperArenaCharacter.h"
+#include "UsedArenaCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
@@ -10,13 +10,13 @@
 #include "NiagaraFunctionLibrary.h"
 
 //////////////////////////////////////////////////////////////////////////
-// ASuperArenaCharacter
+// AUsedArenaCharacter
 
-ASuperArenaCharacter::ASuperArenaCharacter()
+AUsedArenaCharacter::AUsedArenaCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-	
+
 	// set our turn rate for input
 	TurnRateGamepad = 50.f;
 
@@ -52,7 +52,7 @@ ASuperArenaCharacter::ASuperArenaCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
-void ASuperArenaCharacter::ServerTryToMagnifyTheBall_Implementation()
+void AUsedArenaCharacter::ServerTryToMagnifyTheBall_Implementation()
 {
 	bool GotBall = (CapturedBall != nullptr);
 	if (MagnifiedBall)
@@ -93,7 +93,7 @@ void ASuperArenaCharacter::ServerTryToMagnifyTheBall_Implementation()
 						MagnifiedBall = true;
 						CapturedBall = ActorGot;
 						CapturedBall->SetActorRelativeScale3D(FVector(RelativeScaling3DCoe));
-						GetWorld()->GetTimerManager().SetTimer(MagnifyTimer, this, &ASuperArenaCharacter::ResetTheBall, TimeToResetTheBallSize, false, -1);
+						GetWorld()->GetTimerManager().SetTimer(MagnifyTimer, this, &AUsedArenaCharacter::ResetTheBall, TimeToResetTheBallSize, false, -1);
 						break;
 					}
 				}
@@ -103,7 +103,7 @@ void ASuperArenaCharacter::ServerTryToMagnifyTheBall_Implementation()
 	}
 }
 
-void ASuperArenaCharacter::ServerResetTheBall_Implementation()
+void AUsedArenaCharacter::ServerResetTheBall_Implementation()
 {
 	MagnifiedBall = false;
 
@@ -115,7 +115,7 @@ void ASuperArenaCharacter::ServerResetTheBall_Implementation()
 
 
 
-void ASuperArenaCharacter::ServerForcePush_Implementation()
+void AUsedArenaCharacter::ServerForcePush_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("ForcePush"));
 
@@ -151,13 +151,13 @@ void ASuperArenaCharacter::ServerForcePush_Implementation()
 						ForcePower, ERadialImpulseFalloff::RIF_Linear,
 						true
 					);
-					
+
 
 					break;
 				}
 			}
 		}
-		
+
 	}
 }
 
@@ -165,55 +165,55 @@ void ASuperArenaCharacter::ServerForcePush_Implementation()
 //////////////////////////////////////////////////////////////////////////
 // Input
 
-void ASuperArenaCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
+void AUsedArenaCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-	PlayerInputComponent->BindAction("ForcePush", IE_Pressed, this, &ASuperArenaCharacter::ForcePush);
-	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &ASuperArenaCharacter::SprintStart);
-	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &ASuperArenaCharacter::SprintEnd);
-	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &ASuperArenaCharacter::MoveForward);
-	PlayerInputComponent->BindAxis("Move Right / Left", this, &ASuperArenaCharacter::MoveRight);
-	PlayerInputComponent->BindAction("MagnifyTheBall", IE_Pressed, this, &ASuperArenaCharacter::TryToMagnifyTheBall);
-	
+	PlayerInputComponent->BindAction("ForcePush", IE_Pressed, this, &AUsedArenaCharacter::ForcePush);
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AUsedArenaCharacter::SprintStart);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AUsedArenaCharacter::SprintEnd);
+	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &AUsedArenaCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("Move Right / Left", this, &AUsedArenaCharacter::MoveRight);
+	PlayerInputComponent->BindAction("MagnifyTheBall", IE_Pressed, this, &AUsedArenaCharacter::TryToMagnifyTheBall);
+
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
 	PlayerInputComponent->BindAxis("Turn Right / Left Mouse", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("Turn Right / Left Gamepad", this, &ASuperArenaCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("Turn Right / Left Gamepad", this, &AUsedArenaCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("Look Up / Down Mouse", this, &APawn::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("Look Up / Down Gamepad", this, &ASuperArenaCharacter::LookUpAtRate);
+	PlayerInputComponent->BindAxis("Look Up / Down Gamepad", this, &AUsedArenaCharacter::LookUpAtRate);
 
 	// handle touch devices
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &ASuperArenaCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &ASuperArenaCharacter::TouchStopped);
+	PlayerInputComponent->BindTouch(IE_Pressed, this, &AUsedArenaCharacter::TouchStarted);
+	PlayerInputComponent->BindTouch(IE_Released, this, &AUsedArenaCharacter::TouchStopped);
 }
 
-void ASuperArenaCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
+void AUsedArenaCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
 	Jump();
 }
 
-void ASuperArenaCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
+void AUsedArenaCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
 {
 	StopJumping();
 }
 
-void ASuperArenaCharacter::TurnAtRate(float Rate)
+void AUsedArenaCharacter::TurnAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerYawInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
 }
 
-void ASuperArenaCharacter::LookUpAtRate(float Rate)
+void AUsedArenaCharacter::LookUpAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
 }
 
-void ASuperArenaCharacter::ForcePush()
+void AUsedArenaCharacter::ForcePush()
 {
 	UE_LOG(LogTemp, Warning, TEXT("ForcePush"));
 
@@ -221,7 +221,7 @@ void ASuperArenaCharacter::ForcePush()
 	const FVector StartPoint = this->GetActorLocation();
 	const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ForceDistanceOffset;
 	ServerForcePush();
-	
+
 	UNiagaraFunctionLibrary::
 		SpawnSystemAtLocation(
 			GetWorld(),
@@ -229,10 +229,10 @@ void ASuperArenaCharacter::ForcePush()
 			EndPoint,
 			this->GetActorRotation());
 
-	
+
 }
 
-void ASuperArenaCharacter::SprintStart()
+void AUsedArenaCharacter::SprintStart()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("SprintStart"));
 	auto moveCompo = GetCharacterMovement();
@@ -246,7 +246,7 @@ void ASuperArenaCharacter::SprintStart()
 	}
 }
 
-void ASuperArenaCharacter::SprintEnd()
+void AUsedArenaCharacter::SprintEnd()
 {
 	UE_LOG(LogTemp, Warning, TEXT("SprintEnd"));
 	auto moveCompo = GetCharacterMovement();
@@ -260,19 +260,19 @@ void ASuperArenaCharacter::SprintEnd()
 	}
 }
 
-void ASuperArenaCharacter::TryToMagnifyTheBall()
+void AUsedArenaCharacter::TryToMagnifyTheBall()
 {
-	
+
 	ServerTryToMagnifyTheBall();
 }
 
-void ASuperArenaCharacter::ResetTheBall()
+void AUsedArenaCharacter::ResetTheBall()
 {
 	ServerResetTheBall();
 
 }
 
-void ASuperArenaCharacter::MoveForward(float Value)
+void AUsedArenaCharacter::MoveForward(float Value)
 {
 	if ((Controller != nullptr) && (Value != 0.0f))
 	{
@@ -286,14 +286,14 @@ void ASuperArenaCharacter::MoveForward(float Value)
 	}
 }
 
-void ASuperArenaCharacter::MoveRight(float Value)
+void AUsedArenaCharacter::MoveRight(float Value)
 {
-	if ( (Controller != nullptr) && (Value != 0.0f) )
+	if ((Controller != nullptr) && (Value != 0.0f))
 	{
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
-	
+
 		// get right vector 
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 		// add movement in that direction
