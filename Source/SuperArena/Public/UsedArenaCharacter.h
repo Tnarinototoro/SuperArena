@@ -8,26 +8,35 @@
 #include "TheBall.h"
 
 #include "UsedArenaCharacter.generated.h"
-
+class APowerUp;
 UCLASS(config = Game)
 class AUsedArenaCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
 		/** Camera boom positioning the camera behind the character */
-		UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-		class USpringArmComponent* CameraBoom;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	class USpringArmComponent* CameraBoom;
 
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-		class UCameraComponent* FollowCamera;
+	class UCameraComponent* FollowCamera;
 	AActor* CapturedBall = nullptr;
 
 	bool MagnifiedBall = false;
 
 	FTimerHandle MagnifyTimer;
+
+	FTimerHandle BiggerMeTimer;
+
+	bool MagnifiedMe = false;
 public:
 	AUsedArenaCharacter();
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastForcePush();
+
+
 
 	UFUNCTION(Server, Reliable)
 		void ServerForcePush();
@@ -35,6 +44,14 @@ public:
 	UFUNCTION(Server, Reliable)
 		void ServerTryToMagnifyTheBall();
 
+	UFUNCTION(Server, Reliable)
+		void ServerBoostYourSpeed();
+
+	UFUNCTION(Server, Reliable)
+		void ServerTryToMagnifyMe();
+
+	UFUNCTION(Server, Reliable)
+		void ServerResetMe();
 	UFUNCTION(Server, Reliable)
 		void ServerResetTheBall();
 
@@ -48,21 +65,49 @@ public:
 	//How hard you hit the ball
 	UPROPERTY(EditAnywhere)
 		float ForcePower = 7500;
+
+	UPROPERTY(EditAnywhere)
+		float BoostPowerCoe =100 ;
+
+	UPROPERTY(EditAnywhere)
+		float BoostSpeedZValue = 100;
+
+
+	UPROPERTY(EditAnywhere)
+		float BigScale = 3;
 	//VFX part
 	UPROPERTY(EditAnywhere)
 		UNiagaraSystem* VFX_ForcePush;
 	//Time used to reset the ball after scaling
 	UPROPERTY(EditAnywhere)
 		float TimeToResetTheBallSize = 2;
+
+	UPROPERTY(EditAnywhere)
+		float TimeToResetMe = 3;
 	//how bigger or smaller you scale the ball
 	UPROPERTY(EditAnywhere)
 		float RelativeScaling3DCoe = 2;
+
+	UPROPERTY(EditAnywhere)
+		float RelativeScalingMe3DCoe = 2;
 	void ForcePush();
 	void SprintStart();
 	void SprintEnd();
+	
+	//User Item
+	void UseItem();
+	UFUNCTION(Server, Reliable)
+	void ServerUseItem();
+	APowerUp* CurrentPowerUp=nullptr;
+
+
+	void TryToManifyMe();
+	void ResetMe();
 
 	void TryToMagnifyTheBall();
 	void ResetTheBall();
+	
+	void BoostYourSpeed();
 
 protected:
 

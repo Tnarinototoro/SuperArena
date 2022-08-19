@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
+#include "ArenaPlayerState.h"
 #include "ArenaGameState.generated.h"
 
 /**
@@ -21,7 +22,18 @@ public:
 		int TeamOneScore;
 	UPROPERTY(Replicated)
 		int TeamTwoScore;
+	UPROPERTY(EditAnywhere)
+	TArray<AArenaPlayerState*> TeamOne;
+	UPROPERTY(EditAnywhere)
+	TArray<AArenaPlayerState*> TeamTwo;
+	UPROPERTY(EditAnywhere)
+	FLinearColor TeamOneColour;
+	UPROPERTY(EditAnywhere)
+	FLinearColor TeamTwoColour;
 
+	virtual void AddPlayerState
+	(APlayerState* PlayerState) override
+		;
 	void TeamOneGoalScored(int amount);
 	void TeamTwoGoalScored(int amount);
 void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

@@ -7,6 +7,8 @@
 #include "Components/BoxComponent.h"
 #include "TheBall.h"
 #include "ArenaGameState.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 #include "Goal.generated.h"
 
 UCLASS()
@@ -28,6 +30,19 @@ public:
 	
 	UPROPERTY(EditAnywhere, Category = "Ball_Spawning")
 		TSubclassOf<ATheBall> BP_BallClass;
+
+	UPROPERTY(EditAnywhere)
+		int repreSentative = 1;
+
+	UPROPERTY(EditAnywhere)
+	UNiagaraSystem* VFX_GoalExplosion;
+
+	//server version
+	UFUNCTION(Server, Unreliable)
+	void ServerSpawnGoalParticles(FVector SpawnLocation, bool TeamOne);
+	//multicast version
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastSpawnGoalParticles(FVector SpawnLocation, bool TeamOne);
 protected:
 	AArenaGameState* GameState;
 	// Called when the game starts or when spawned

@@ -7,6 +7,39 @@ AArenaGameState::AArenaGameState()
 {
 	this->TeamOneScore = 0;
 	this->TeamTwoScore = 0;
+	TeamOneColour = FLinearColor::Blue;
+	TeamTwoColour = FLinearColor::Red;
+}
+
+void AArenaGameState::AddPlayerState(APlayerState* PlayerState)
+{
+	Super::AddPlayerState(PlayerState);
+	if(Cast<AArenaPlayerState>(PlayerState))
+	{
+		AArenaPlayerState* NewArenaPlayerState = Cast
+			<AArenaPlayerState>(PlayerState);
+		if(TeamOne.Num() < TeamTwo.Num())
+		{
+			TeamOne.Add(NewArenaPlayerState);
+		}
+		else if(TeamTwo.Num() < TeamOne.Num())
+		{
+			TeamTwo.Add(NewArenaPlayerState);
+		}
+		else
+		{
+			if
+				(rand() % 2 == 0)
+			{
+				TeamOne.Add(NewArenaPlayerState);
+			}
+			else
+			{
+				TeamTwo.Add(NewArenaPlayerState);
+			}
+		}
+	}
+
 }
 
 void AArenaGameState::TeamOneGoalScored(int amount)

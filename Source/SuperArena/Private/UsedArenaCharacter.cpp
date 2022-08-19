@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "PowerUp.h"
 #include "NiagaraFunctionLibrary.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -52,6 +53,32 @@ AUsedArenaCharacter::AUsedArenaCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
+void AUsedArenaCharacter::ServerBoostYourSpeed_Implementation()
+{
+	
+	auto MovementCompo = GetCharacterMovement();
+	
+	FVector Temp = this->GetMesh()->GetRightVector()* (BoostPowerCoe);
+	Temp.Z = BoostSpeedZValue;
+
+	MovementCompo->SetMovementMode(EMovementMode::MOVE_Falling);
+	MovementCompo->Velocity = Temp;
+}
+
+//For generating particle effects for every hit
+void AUsedArenaCharacter::MulticastForcePush_Implementation()
+{
+	TArray<FHitResult> BallHitResults;
+	const FVector StartPoint = this->GetActorLocation();
+	const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ForceDistanceOffset;
+	UNiagaraFunctionLibrary::
+		SpawnSystemAtLocation(
+			GetWorld(),
+			VFX_ForcePush,
+			EndPoint,
+			this->GetActorRotation());
+}
+
 void AUsedArenaCharacter::ServerTryToMagnifyTheBall_Implementation()
 {
 	bool GotBall = (CapturedBall != nullptr);
@@ -93,6 +120,12 @@ void AUsedArenaCharacter::ServerTryToMagnifyTheBall_Implementation()
 						MagnifiedBall = true;
 						CapturedBall = ActorGot;
 						CapturedBall->SetActorRelativeScale3D(FVector(RelativeScaling3DCoe));
+						
+						auto rootMesh=Cast<UStaticMeshComponent>(CapturedBall->GetRootComponent());
+						if (rootMesh)
+						{
+							rootMesh->SetMassScale(NAME_None,100);
+						}
 						GetWorld()->GetTimerManager().SetTimer(MagnifyTimer, this, &AUsedArenaCharacter::ResetTheBall, TimeToResetTheBallSize, false, -1);
 						break;
 					}
@@ -106,7 +139,11 @@ void AUsedArenaCharacter::ServerTryToMagnifyTheBall_Implementation()
 void AUsedArenaCharacter::ServerResetTheBall_Implementation()
 {
 	MagnifiedBall = false;
-
+	auto rootMesh = Cast<UStaticMeshComponent>(CapturedBall->GetRootComponent());
+	if (rootMesh)
+	{
+		rootMesh->SetMassScale(NAME_None, 1);
+	}
 
 	CapturedBall->SetActorScale3D(FVector(1));
 	CapturedBall = nullptr;
@@ -118,7 +155,7 @@ void AUsedArenaCharacter::ServerResetTheBall_Implementation()
 void AUsedArenaCharacter::ServerForcePush_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("ForcePush"));
-
+	MulticastForcePush();
 	TArray<FHitResult> BallHitResults;
 	const FVector StartPoint = this->GetActorLocation();
 	const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ForceDistanceOffset;
@@ -174,8 +211,13 @@ void AUsedArenaCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindAction("ForcePush", IE_Pressed, this, &AUsedArenaCharacter::ForcePush);
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AUsedArenaCharacter::SprintStart);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AUsedArenaCharacter::SprintEnd);
+	PlayerInputComponent->BindAction("UseItem", IE_Pressed, this, &AUsedArenaCharacter::UseItem);
+	PlayerInputComponent->BindAction("Boost", IE_Pressed, this, &AUsedArenaCharacter::BoostYourSpeed);
+	PlayerInputComponent->BindAction("Bigger", IE_Pressed, this, &AUsedArenaCharacter::TryToManifyMe);
 	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &AUsedArenaCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right / Left", this, &AUsedArenaCharacter::MoveRight);
+	
+
 	PlayerInputComponent->BindAction("MagnifyTheBall", IE_Pressed, this, &AUsedArenaCharacter::TryToMagnifyTheBall);
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
@@ -215,19 +257,11 @@ void AUsedArenaCharacter::LookUpAtRate(float Rate)
 
 void AUsedArenaCharacter::ForcePush()
 {
-	UE_LOG(LogTemp, Warning, TEXT("ForcePush"));
-
-	TArray<FHitResult> BallHitResults;
-	const FVector StartPoint = this->GetActorLocation();
-	const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ForceDistanceOffset;
+	
 	ServerForcePush();
+	//UE_LOG(LogTemp, Warning, TEXT("ForcePush"));
 
-	UNiagaraFunctionLibrary::
-		SpawnSystemAtLocation(
-			GetWorld(),
-			VFX_ForcePush,
-			EndPoint,
-			this->GetActorRotation());
+
 
 
 }
@@ -260,6 +294,33 @@ void AUsedArenaCharacter::SprintEnd()
 	}
 }
 
+void AUsedArenaCharacter::UseItem()
+{
+	ServerUseItem();
+}
+
+void AUsedArenaCharacter::ServerUseItem_Implementation()
+{
+	if(CurrentPowerUp)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("A player used an item!"));
+		CurrentPowerUp->Use(this);
+		CurrentPowerUp = nullptr;
+
+	}
+
+}
+
+void AUsedArenaCharacter::TryToManifyMe()
+{
+	ServerTryToMagnifyMe();
+}
+
+void AUsedArenaCharacter::ResetMe()
+{
+	ServerResetMe();
+}
+
 void AUsedArenaCharacter::TryToMagnifyTheBall()
 {
 
@@ -270,6 +331,11 @@ void AUsedArenaCharacter::ResetTheBall()
 {
 	ServerResetTheBall();
 
+}
+
+void AUsedArenaCharacter::BoostYourSpeed()
+{
+	ServerBoostYourSpeed();
 }
 
 void AUsedArenaCharacter::MoveForward(float Value)
@@ -299,4 +365,29 @@ void AUsedArenaCharacter::MoveRight(float Value)
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
 	}
+}
+
+void AUsedArenaCharacter::ServerTryToMagnifyMe_Implementation()
+{
+
+
+	
+	if (MagnifiedMe)
+	{
+
+	}
+	else
+	{
+
+		MagnifiedMe = true;
+		this->SetActorRelativeScale3D(FVector(RelativeScalingMe3DCoe));
+		GetWorld()->GetTimerManager().SetTimer(BiggerMeTimer, this, &AUsedArenaCharacter::ResetMe, TimeToResetMe, false, -1);
+		
+	}
+}
+
+void AUsedArenaCharacter::ServerResetMe_Implementation()
+{
+	MagnifiedMe = false;
+	this->SetActorRelativeScale3D(FVector(1));
 }

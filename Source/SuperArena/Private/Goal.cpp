@@ -2,7 +2,7 @@
 
 
 #include "Goal.h"
-
+#include "UsedArenaCharacter.h"
 // Sets default values
 AGoal::AGoal()
 {
@@ -13,6 +13,29 @@ AGoal::AGoal()
 
 	GoalCollider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collision Component"));
 	GoalCollider->SetupAttachment(GoalMesh);
+	bReplicates = true;
+}
+
+void AGoal::ServerSpawnGoalParticles_Implementation(FVector SpawnLocation, bool TeamOne)
+{
+	MulticastSpawnGoalParticles(SpawnLocation, TeamOne);
+}
+
+void AGoal::MulticastSpawnGoalParticles_Implementation(FVector SpawnLocation, bool TeamOne)
+{
+	if (VFX_GoalExplosion)
+	{
+		UNiagaraComponent* GoalExplosion = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), VFX_GoalExplosion, SpawnLocation, GetActorForwardVector().Rotation());
+		if (TeamOne)
+		{
+			GoalExplosion->SetNiagaraVariableLinearColor(FString("User.Colour"), GameState->TeamOneColour);
+		}
+		else
+		{
+			GoalExplosion->SetNiagaraVariableLinearColor(FString("User.Colour"), GameState->TeamTwoColour);
+		}
+	}
+
 }
 
 // Called when the game starts or when spawned
@@ -34,16 +57,33 @@ void AGoal::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 			auto GotBall = Cast<ATheBall>(OtherActor);
 			if (GotBall)
 			{
+				if (GotBall->LastPlayer)
+				{
+					if(GameState) 
+					{
+						if
+							(GameState->TeamOne.Contains(GotBall->LastPlayer->GetPlayerState()))
+						{
+							GameState->TeamOneGoalScored(1);
+							ServerSpawnGoalParticles(GotBall->GetActorLocation(), true);
+
+						}
+						else
+						{
+							GameState->TeamTwoGoalScored(1);
+							ServerSpawnGoalParticles(GotBall->GetActorLocation(), false);
+						}
+					}
+				}
 				GotBall->Destroy();
-				GameState->TeamOneGoalScored(1);
-				auto SpawnedActor = GetWorld()->SpawnActor(BP_BallClass, &BallSpawnLocation);
-				SpawnedActor->GetRootComponent()->ComponentTags.Add(FName("Ball"));
-				UE_LOG(LogTemp, Warning, TEXT("%d"), GameState->TeamOneScore);
+				GetWorld()->SpawnActor
+				(BP_BallClass, &BallSpawnLocation);
+
 			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Not A Ball"));
-			}
+			
+			
+			
+
 		}
 	}
 }
