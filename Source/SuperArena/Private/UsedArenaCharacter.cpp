@@ -370,8 +370,25 @@ void AUsedArenaCharacter::MoveRight(float Value)
 void AUsedArenaCharacter::ServerTryToMagnifyMe_Implementation()
 {
 
-
+	MulticastTryToMagnifyMe();
 	
+}
+
+void AUsedArenaCharacter::ServerResetMe_Implementation()
+{
+	MulticastTryToRestMe();
+	
+}
+
+void AUsedArenaCharacter::MulticastTryToRestMe_Implementation()
+{
+	MagnifiedMe = false;
+	this->SetActorRelativeScale3D(FVector(1));
+}
+
+void AUsedArenaCharacter::MulticastTryToMagnifyMe_Implementation()
+{
+
 	if (MagnifiedMe)
 	{
 
@@ -382,12 +399,6 @@ void AUsedArenaCharacter::ServerTryToMagnifyMe_Implementation()
 		MagnifiedMe = true;
 		this->SetActorRelativeScale3D(FVector(RelativeScalingMe3DCoe));
 		GetWorld()->GetTimerManager().SetTimer(BiggerMeTimer, this, &AUsedArenaCharacter::ResetMe, TimeToResetMe, false, -1);
-		
-	}
-}
 
-void AUsedArenaCharacter::ServerResetMe_Implementation()
-{
-	MagnifiedMe = false;
-	this->SetActorRelativeScale3D(FVector(1));
+	}
 }

@@ -31,29 +31,65 @@ class AUsedArenaCharacter : public ACharacter
 
 	bool MagnifiedMe = false;
 public:
+
+	
+	void SprintStart();
+	void SprintEnd();
+
+	
+	APowerUp* CurrentPowerUp = nullptr;
+
+
+	
+	
+
+	
+	
+
+	
 	AUsedArenaCharacter();
 
+	//Force push functions
+	void ForcePush();
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastForcePush();
-
-
-
 	UFUNCTION(Server, Reliable)
 		void ServerForcePush();
 
+
+	//MagnifyTheBall Functions there is no net
+	//version functions becaue the ball has been replicated
+	void TryToMagnifyTheBall();
 	UFUNCTION(Server, Reliable)
 		void ServerTryToMagnifyTheBall();
 
-	UFUNCTION(Server, Reliable)
-		void ServerBoostYourSpeed();
-
-	UFUNCTION(Server, Reliable)
-		void ServerTryToMagnifyMe();
-
-	UFUNCTION(Server, Reliable)
-		void ServerResetMe();
+	void ResetTheBall();
 	UFUNCTION(Server, Reliable)
 		void ServerResetTheBall();
+
+	//Boost yourself
+	UFUNCTION(Server, Reliable)
+		void ServerBoostYourSpeed();
+	void BoostYourSpeed();
+
+	//Magnify me 
+	void TryToManifyMe();
+	UFUNCTION(Server, Reliable)
+		void ServerTryToMagnifyMe();
+	UFUNCTION(NetMulticast, Unreliable)
+		void MulticastTryToMagnifyMe();
+
+	void ResetMe();
+	UFUNCTION(Server, Reliable)
+		void ServerResetMe();
+	UFUNCTION(NetMulticast, Unreliable)
+		void MulticastTryToRestMe();
+
+	//User Item
+	void UseItem();
+	UFUNCTION(Server, Reliable)
+		void ServerUseItem();
+	
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Input)
@@ -90,26 +126,17 @@ public:
 
 	UPROPERTY(EditAnywhere)
 		float RelativeScalingMe3DCoe = 2;
-	void ForcePush();
-	void SprintStart();
-	void SprintEnd();
 	
-	//User Item
-	void UseItem();
-	UFUNCTION(Server, Reliable)
-	void ServerUseItem();
-	APowerUp* CurrentPowerUp=nullptr;
 
-
-	void TryToManifyMe();
-	void ResetMe();
-
-	void TryToMagnifyTheBall();
-	void ResetTheBall();
-	
-	void BoostYourSpeed();
-
+	/** Returns CameraBoom subobject **/
+	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	/** Returns FollowCamera subobject **/
+	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 protected:
+	// APawn interface
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	// End of APawn interface
+
 
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);
@@ -135,15 +162,7 @@ protected:
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
-protected:
-	// APawn interface
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	// End of APawn interface
 
-public:
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns FollowCamera subobject **/
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	
 };
 
