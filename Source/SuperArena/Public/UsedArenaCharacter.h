@@ -29,6 +29,8 @@ class AUsedArenaCharacter : public ACharacter
 
 	FTimerHandle BiggerMeTimer;
 
+	FTimerHandle HighlightTimer;
+
 	bool MagnifiedMe = false;
 public:
 
@@ -36,7 +38,22 @@ public:
 	void SprintStart();
 	void SprintEnd();
 
+
+	//scan radius
 	
+	void Scan();
+	void CancelHightLight();
+
+	UPROPERTY(EditAnywhere)
+	float ResetScanningTimer = 2.0f;
+	UPROPERTY(EditAnywhere)
+	float ScanRadius = 200.0f;
+	UFUNCTION(Server, Reliable)
+	void ServerScan();
+	UFUNCTION(Server, Reliable)
+	void ServerCancelHightLight();
+	TArray<UStaticMeshComponent*> StoredObjectsHighlighted;
+
 	APowerUp* CurrentPowerUp = nullptr;
 
 
@@ -55,6 +72,13 @@ public:
 	void MulticastForcePush();
 	UFUNCTION(Server, Reliable)
 		void ServerForcePush();
+
+	//fire beam
+	void FireBeam();
+	UFUNCTION(NetMulticast, Unreliable)
+		void MulticastFireBeam();
+	UFUNCTION(Server, Reliable)
+		void ServerFireBeam();
 
 
 	//MagnifyTheBall Functions there is no net
@@ -115,6 +139,10 @@ public:
 	UPROPERTY(EditAnywhere)
 		UNiagaraSystem* VFX_ForcePush;
 	//Time used to reset the ball after scaling
+
+	UPROPERTY(EditAnywhere)
+		UNiagaraSystem* VFX_fireBeam;
+
 	UPROPERTY(EditAnywhere)
 		float TimeToResetTheBallSize = 2;
 

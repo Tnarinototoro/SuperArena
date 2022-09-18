@@ -9,6 +9,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "PowerUp.h"
 #include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AUsedArenaCharacter
@@ -217,9 +218,9 @@ void AUsedArenaCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &AUsedArenaCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right / Left", this, &AUsedArenaCharacter::MoveRight);
 	
-
+	PlayerInputComponent->BindAction("FireBeam", IE_Pressed, this, &AUsedArenaCharacter::FireBeam);
 	PlayerInputComponent->BindAction("MagnifyTheBall", IE_Pressed, this, &AUsedArenaCharacter::TryToMagnifyTheBall);
-
+	PlayerInputComponent->BindAction("Scan", IE_Pressed, this, &AUsedArenaCharacter::Scan);
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
@@ -266,6 +267,44 @@ void AUsedArenaCharacter::ForcePush()
 
 }
 
+void AUsedArenaCharacter::FireBeam()
+{
+	ServerFireBeam();
+}
+
+void AUsedArenaCharacter::MulticastFireBeam_Implementation()
+{
+	if (VFX_fireBeam != nullptr)
+	{
+		FVector InnerBeamSize = FVector(0.2, 0.2, 5);
+		FVector OuterBeamSize = FVector(0.5, 0.5, 5);
+		FVector StartTrace = this->GetActorLocation() + (this->GetActorForwardVector() * 100);
+		FVector EndTrace = this->GetActorLocation() + (this->GetActorForwardVector() * 5000);
+		FHitResult TraceResults;
+		FCollisionQueryParams TraceParams;
+		TraceParams.AddIgnoredActor(this);
+		GetWorld()->LineTraceSingleByChannel(TraceResults, StartTrace, EndTrace, ECC_Pawn, TraceParams);
+		if (TraceResults.GetActor()) 
+		{
+			float Distance = TraceResults.Distance / 100;
+			InnerBeamSize.Z = Distance;
+			OuterBeamSize.Z = Distance;
+		}
+
+		UNiagaraComponent* LaserComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(),
+				VFX_fireBeam, StartTrace,
+				this->GetActorRotation());
+		LaserComponent->SetNiagaraVariableVec3(FString("InnerBeamScale"), InnerBeamSize);
+		LaserComponent->SetNiagaraVariableVec3(FString("OuterBeamScale"), OuterBeamSize);
+
+	}
+}
+
+void AUsedArenaCharacter::ServerFireBeam_Implementation()
+{
+	MulticastFireBeam();
+}
+
 void AUsedArenaCharacter::SprintStart()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("SprintStart"));
@@ -292,6 +331,79 @@ void AUsedArenaCharacter::SprintEnd()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SprintEnd Movement Compo NULL"));
 	}
+}
+
+void AUsedArenaCharacter::Scan()
+{
+	ServerScan();
+	
+}
+
+void AUsedArenaCharacter::CancelHightLight()
+{
+	ServerCancelHightLight();
+	
+}
+
+void AUsedArenaCharacter::ServerCancelHightLight_Implementation()
+{
+	if (StoredObjectsHighlighted.Num() == 0)
+		return;
+	for (auto p : StoredObjectsHighlighted)
+	{
+		if (p)
+		{
+			p->SetRenderCustomDepth(false);
+		}
+	}
+	StoredObjectsHighlighted.Empty();
+}
+
+void AUsedArenaCharacter::ServerScan_Implementation()
+{
+	
+	TArray<FHitResult> BallHitResults;
+	const FVector StartPoint = this->GetActorLocation();
+	const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ScanRadius;
+	const FCollisionShape CubicShape = FCollisionShape::MakeBox(FVector(ScanRadius));
+	const bool Sweep = GetWorld()->
+		SweepMultiByChannel
+		(BallHitResults, StartPoint, EndPoint,
+			this->GetActorQuat(),
+			ECC_WorldDynamic, CubicShape);
+	if (Sweep)
+	{
+
+		for (const auto& HitResult : BallHitResults)
+		{
+			auto ActorGot = HitResult.GetActor();
+			if (ActorGot != nullptr && ActorGot != this)
+			{
+				UStaticMeshComponent* HitCompo =
+					Cast<UStaticMeshComponent>
+					(ActorGot->GetRootComponent());
+
+				if (HitCompo&&Cast<APowerUp>(ActorGot))
+				{
+					StoredObjectsHighlighted.Add(HitCompo);
+					HitCompo->SetRenderCustomDepth(true);
+					HitCompo->SetCustomDepthStencilValue(0);
+					
+				}
+			}
+		}
+		GetWorld()->
+			GetTimerManager().SetTimer(
+			HighlightTimer, 
+			this, 
+			&AUsedArenaCharacter::CancelHightLight, 
+			ResetScanningTimer, 
+			false, 
+			-1);
+
+	}
+
+
 }
 
 void AUsedArenaCharacter::UseItem()
