@@ -56,14 +56,30 @@ AUsedArenaCharacter::AUsedArenaCharacter()
 
 void AUsedArenaCharacter::ServerBoostYourSpeed_Implementation()
 {
+	if (CanWeBoost)
+	{
+		CanWeBoost = false;
+		auto MovementCompo = GetCharacterMovement();
+		FVector Temp = this->GetMesh()->GetRightVector() * (BoostPowerCoe);
+		Temp.Z = BoostSpeedZValue;
+		MovementCompo->SetMovementMode(EMovementMode::MOVE_Falling);
+		MovementCompo->Velocity = Temp;
+		GetWorld()->GetTimerManager().SetTimer(BoostResetTimer, this, &AUsedArenaCharacter::ResetBoost, CooldownTime);
+	}
 	
-	auto MovementCompo = GetCharacterMovement();
-	
-	FVector Temp = this->GetMesh()->GetRightVector()* (BoostPowerCoe);
-	Temp.Z = BoostSpeedZValue;
+}
+void AUsedArenaCharacter::ResetBoost()
+{
+	ServerResetBoost();
+}
 
-	MovementCompo->SetMovementMode(EMovementMode::MOVE_Falling);
-	MovementCompo->Velocity = Temp;
+void AUsedArenaCharacter::ServerResetBoost_Implementation()
+{
+	MulticastTryResetBoost();
+}
+void AUsedArenaCharacter::MulticastTryResetBoost_Implementation()
+{
+	CanWeBoost = true;
 }
 
 //For generating particle effects for every hit

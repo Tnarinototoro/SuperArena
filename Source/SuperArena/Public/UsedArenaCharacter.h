@@ -31,6 +31,8 @@ class AUsedArenaCharacter : public ACharacter
 
 	FTimerHandle HighlightTimer;
 
+	FTimerHandle BoostResetTimer;
+
 	bool MagnifiedMe = false;
 public:
 
@@ -109,6 +111,12 @@ public:
 	UFUNCTION(NetMulticast, Unreliable)
 		void MulticastTryToRestMe();
 
+	void ResetBoost();
+	UFUNCTION(Server, Reliable)
+		void ServerResetBoost();
+	UFUNCTION(NetMulticast, Unreliable)
+		void MulticastTryResetBoost();
+
 	//User Item
 	void UseItem();
 	UFUNCTION(Server, Reliable)
@@ -131,7 +139,10 @@ public:
 
 	UPROPERTY(EditAnywhere)
 		float BoostSpeedZValue = 100;
-
+	UPROPERTY(EditAnywhere)
+		float CooldownTime = 2.0f;
+	
+		bool CanWeBoost = true;
 
 	UPROPERTY(EditAnywhere)
 		float BigScale = 3;
