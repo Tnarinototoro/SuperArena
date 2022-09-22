@@ -52,8 +52,14 @@ public:
 	float ScanRadius = 200.0f;
 	UFUNCTION(Server, Reliable)
 	void ServerScan();
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastServerScan();
+
 	UFUNCTION(Server, Reliable)
 	void ServerCancelHightLight();
+	UFUNCTION(NetMulticast, Unreliable)
+	void MulticastServerCancelHightLight();
+
 	TArray<UStaticMeshComponent*> StoredObjectsHighlighted;
 
 	APowerUp* CurrentPowerUp = nullptr;

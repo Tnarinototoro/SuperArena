@@ -354,30 +354,15 @@ void AUsedArenaCharacter::Scan()
 	ServerScan();
 	
 }
-
-void AUsedArenaCharacter::CancelHightLight()
-{
-	ServerCancelHightLight();
-	
-}
-
-void AUsedArenaCharacter::ServerCancelHightLight_Implementation()
-{
-	if (StoredObjectsHighlighted.Num() == 0)
-		return;
-	for (auto p : StoredObjectsHighlighted)
-	{
-		if (p)
-		{
-			p->SetRenderCustomDepth(false);
-		}
-	}
-	StoredObjectsHighlighted.Empty();
-}
-
 void AUsedArenaCharacter::ServerScan_Implementation()
 {
-	
+
+	MulticastServerScan();
+
+
+}
+void AUsedArenaCharacter::MulticastServerScan_Implementation()
+{
 	TArray<FHitResult> BallHitResults;
 	const FVector StartPoint = this->GetActorLocation();
 	const FVector EndPoint = StartPoint + this->GetActorForwardVector() * ScanRadius;
@@ -399,28 +384,56 @@ void AUsedArenaCharacter::ServerScan_Implementation()
 					Cast<UStaticMeshComponent>
 					(ActorGot->GetRootComponent());
 
-				if (HitCompo&&Cast<APowerUp>(ActorGot))
+				if (HitCompo && Cast<APowerUp>(ActorGot))
 				{
 					StoredObjectsHighlighted.Add(HitCompo);
 					HitCompo->SetRenderCustomDepth(true);
 					HitCompo->SetCustomDepthStencilValue(0);
-					
+
 				}
 			}
 		}
 		GetWorld()->
 			GetTimerManager().SetTimer(
-			HighlightTimer, 
-			this, 
-			&AUsedArenaCharacter::CancelHightLight, 
-			ResetScanningTimer, 
-			false, 
-			-1);
+				HighlightTimer,
+				this,
+				&AUsedArenaCharacter::CancelHightLight,
+				ResetScanningTimer,
+				false,
+				-1);
 
 	}
-
-
 }
+
+
+
+void AUsedArenaCharacter::CancelHightLight()
+{
+	ServerCancelHightLight();
+	
+}
+void AUsedArenaCharacter::MulticastServerCancelHightLight_Implementation()
+{
+	if (StoredObjectsHighlighted.Num() == 0)
+		return;
+	for (auto p : StoredObjectsHighlighted)
+	{
+		if (p)
+		{
+			p->SetRenderCustomDepth(false);
+		}
+	}
+	StoredObjectsHighlighted.Empty();
+}
+
+void AUsedArenaCharacter::ServerCancelHightLight_Implementation()
+{
+	MulticastServerCancelHightLight();
+
+	
+}
+
+
 
 void AUsedArenaCharacter::UseItem()
 {
