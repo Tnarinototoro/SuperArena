@@ -35,17 +35,11 @@ class AUsedArenaCharacter : public ACharacter
 
 	bool MagnifiedMe = false;
 public:
-
-	
 	void SprintStart();
 	void SprintEnd();
-
-
 	//scan radius
-	
 	void Scan();
 	void CancelHightLight();
-
 	UPROPERTY(EditAnywhere)
 	float ResetScanningTimer = 2.0f;
 	UPROPERTY(EditAnywhere)
@@ -54,24 +48,12 @@ public:
 	void ServerScan();
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastServerScan();
-
 	UFUNCTION(Server, Reliable)
 	void ServerCancelHightLight();
 	UFUNCTION(NetMulticast, Unreliable)
 	void MulticastServerCancelHightLight();
-
 	TArray<UStaticMeshComponent*> StoredObjectsHighlighted;
-
 	APowerUp* CurrentPowerUp = nullptr;
-
-
-	
-	
-
-	
-	
-
-	
 	AUsedArenaCharacter();
 
 	//Force push functions
@@ -140,6 +122,8 @@ public:
 	UPROPERTY(EditAnywhere)
 		float ForcePower = 7500;
 
+
+	
 	UPROPERTY(EditAnywhere)
 		float BoostPowerCoe =100 ;
 

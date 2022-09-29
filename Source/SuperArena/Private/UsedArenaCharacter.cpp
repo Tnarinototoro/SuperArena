@@ -13,7 +13,6 @@
 
 //////////////////////////////////////////////////////////////////////////
 // AUsedArenaCharacter
-
 AUsedArenaCharacter::AUsedArenaCharacter()
 {
 	// Set size for collision capsule
@@ -53,7 +52,39 @@ AUsedArenaCharacter::AUsedArenaCharacter()
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
+//Sprint
+void AUsedArenaCharacter::SprintStart()
+{
+	//UE_LOG(LogTemp, Warning, TEXT("SprintStart"));
+	auto moveCompo = GetCharacterMovement();
+	if (moveCompo != nullptr)
+	{
+		moveCompo->MaxWalkSpeed = 780.f;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SprintStart Movement Compo NULL"));
+	}
+}
+void AUsedArenaCharacter::SprintEnd()
+{
+	UE_LOG(LogTemp, Warning, TEXT("SprintEnd"));
+	auto moveCompo = GetCharacterMovement();
+	if (moveCompo != nullptr)
+	{
+		moveCompo->MaxWalkSpeed = 500.f;
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SprintEnd Movement Compo NULL"));
+	}
+}
 
+//Boost yourself
+void AUsedArenaCharacter::BoostYourSpeed()
+{
+	ServerBoostYourSpeed();
+}
 void AUsedArenaCharacter::ServerBoostYourSpeed_Implementation()
 {
 	if (CanWeBoost)
@@ -72,7 +103,6 @@ void AUsedArenaCharacter::ResetBoost()
 {
 	ServerResetBoost();
 }
-
 void AUsedArenaCharacter::ServerResetBoost_Implementation()
 {
 	MulticastTryResetBoost();
@@ -81,8 +111,12 @@ void AUsedArenaCharacter::MulticastTryResetBoost_Implementation()
 {
 	CanWeBoost = true;
 }
-
+//Force Push 
 //For generating particle effects for every hit
+void AUsedArenaCharacter::ForcePush()
+{
+	ServerForcePush();
+}
 void AUsedArenaCharacter::MulticastForcePush_Implementation()
 {
 	TArray<FHitResult> BallHitResults;
@@ -95,7 +129,6 @@ void AUsedArenaCharacter::MulticastForcePush_Implementation()
 			EndPoint,
 			this->GetActorRotation());
 }
-
 void AUsedArenaCharacter::ServerTryToMagnifyTheBall_Implementation()
 {
 	bool GotBall = (CapturedBall != nullptr);
@@ -152,7 +185,6 @@ void AUsedArenaCharacter::ServerTryToMagnifyTheBall_Implementation()
 		}
 	}
 }
-
 void AUsedArenaCharacter::ServerResetTheBall_Implementation()
 {
 	MagnifiedBall = false;
@@ -165,10 +197,6 @@ void AUsedArenaCharacter::ServerResetTheBall_Implementation()
 	CapturedBall->SetActorScale3D(FVector(1));
 	CapturedBall = nullptr;
 }
-
-
-
-
 void AUsedArenaCharacter::ServerForcePush_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("ForcePush"));
@@ -214,80 +242,11 @@ void AUsedArenaCharacter::ServerForcePush_Implementation()
 
 	}
 }
-
-
-//////////////////////////////////////////////////////////////////////////
-// Input
-
-void AUsedArenaCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
-{
-	// Set up gameplay key bindings
-	check(PlayerInputComponent);
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
-	PlayerInputComponent->BindAction("ForcePush", IE_Pressed, this, &AUsedArenaCharacter::ForcePush);
-	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AUsedArenaCharacter::SprintStart);
-	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AUsedArenaCharacter::SprintEnd);
-	PlayerInputComponent->BindAction("UseItem", IE_Pressed, this, &AUsedArenaCharacter::UseItem);
-	PlayerInputComponent->BindAction("Boost", IE_Pressed, this, &AUsedArenaCharacter::BoostYourSpeed);
-	PlayerInputComponent->BindAction("Bigger", IE_Pressed, this, &AUsedArenaCharacter::TryToManifyMe);
-	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &AUsedArenaCharacter::MoveForward);
-	PlayerInputComponent->BindAxis("Move Right / Left", this, &AUsedArenaCharacter::MoveRight);
-	
-	PlayerInputComponent->BindAction("FireBeam", IE_Pressed, this, &AUsedArenaCharacter::FireBeam);
-	PlayerInputComponent->BindAction("MagnifyTheBall", IE_Pressed, this, &AUsedArenaCharacter::TryToMagnifyTheBall);
-	PlayerInputComponent->BindAction("Scan", IE_Pressed, this, &AUsedArenaCharacter::Scan);
-	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
-	// "turn" handles devices that provide an absolute delta, such as a mouse.
-	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
-	PlayerInputComponent->BindAxis("Turn Right / Left Mouse", this, &APawn::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("Turn Right / Left Gamepad", this, &AUsedArenaCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("Look Up / Down Mouse", this, &APawn::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("Look Up / Down Gamepad", this, &AUsedArenaCharacter::LookUpAtRate);
-
-	// handle touch devices
-	PlayerInputComponent->BindTouch(IE_Pressed, this, &AUsedArenaCharacter::TouchStarted);
-	PlayerInputComponent->BindTouch(IE_Released, this, &AUsedArenaCharacter::TouchStopped);
-}
-
-void AUsedArenaCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
-{
-	Jump();
-}
-
-void AUsedArenaCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
-{
-	StopJumping();
-}
-
-void AUsedArenaCharacter::TurnAtRate(float Rate)
-{
-	// calculate delta for this frame from the rate information
-	AddControllerYawInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
-}
-
-void AUsedArenaCharacter::LookUpAtRate(float Rate)
-{
-	// calculate delta for this frame from the rate information
-	AddControllerPitchInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
-}
-
-void AUsedArenaCharacter::ForcePush()
-{
-	
-	ServerForcePush();
-	//UE_LOG(LogTemp, Warning, TEXT("ForcePush"));
-
-
-
-
-}
-
+//Fire beam
 void AUsedArenaCharacter::FireBeam()
 {
 	ServerFireBeam();
 }
-
 void AUsedArenaCharacter::MulticastFireBeam_Implementation()
 {
 	if (VFX_fireBeam != nullptr)
@@ -315,40 +274,12 @@ void AUsedArenaCharacter::MulticastFireBeam_Implementation()
 
 	}
 }
-
 void AUsedArenaCharacter::ServerFireBeam_Implementation()
 {
 	MulticastFireBeam();
 }
 
-void AUsedArenaCharacter::SprintStart()
-{
-	//UE_LOG(LogTemp, Warning, TEXT("SprintStart"));
-	auto moveCompo = GetCharacterMovement();
-	if (moveCompo != nullptr)
-	{
-		moveCompo->MaxWalkSpeed = 780.f;
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("SprintStart Movement Compo NULL"));
-	}
-}
-
-void AUsedArenaCharacter::SprintEnd()
-{
-	UE_LOG(LogTemp, Warning, TEXT("SprintEnd"));
-	auto moveCompo = GetCharacterMovement();
-	if (moveCompo != nullptr)
-	{
-		moveCompo->MaxWalkSpeed = 500.f;
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("SprintEnd Movement Compo NULL"));
-	}
-}
-
+//Scanning highlight functions
 void AUsedArenaCharacter::Scan()
 {
 	ServerScan();
@@ -404,9 +335,6 @@ void AUsedArenaCharacter::MulticastServerScan_Implementation()
 
 	}
 }
-
-
-
 void AUsedArenaCharacter::CancelHightLight()
 {
 	ServerCancelHightLight();
@@ -425,7 +353,6 @@ void AUsedArenaCharacter::MulticastServerCancelHightLight_Implementation()
 	}
 	StoredObjectsHighlighted.Empty();
 }
-
 void AUsedArenaCharacter::ServerCancelHightLight_Implementation()
 {
 	MulticastServerCancelHightLight();
@@ -433,13 +360,11 @@ void AUsedArenaCharacter::ServerCancelHightLight_Implementation()
 	
 }
 
-
-
+//Use item function
 void AUsedArenaCharacter::UseItem()
 {
 	ServerUseItem();
 }
-
 void AUsedArenaCharacter::ServerUseItem_Implementation()
 {
 	if(CurrentPowerUp)
@@ -452,81 +377,31 @@ void AUsedArenaCharacter::ServerUseItem_Implementation()
 
 }
 
+//make yourself bigger
 void AUsedArenaCharacter::TryToManifyMe()
 {
 	ServerTryToMagnifyMe();
 }
-
-void AUsedArenaCharacter::ResetMe()
-{
-	ServerResetMe();
-}
-
-void AUsedArenaCharacter::TryToMagnifyTheBall()
-{
-
-	ServerTryToMagnifyTheBall();
-}
-
-void AUsedArenaCharacter::ResetTheBall()
-{
-	ServerResetTheBall();
-
-}
-
-void AUsedArenaCharacter::BoostYourSpeed()
-{
-	ServerBoostYourSpeed();
-}
-
-void AUsedArenaCharacter::MoveForward(float Value)
-{
-	if ((Controller != nullptr) && (Value != 0.0f))
-	{
-		// find out which way is forward
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		// get forward vector
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-		AddMovementInput(Direction, Value);
-	}
-}
-
-void AUsedArenaCharacter::MoveRight(float Value)
-{
-	if ((Controller != nullptr) && (Value != 0.0f))
-	{
-		// find out which way is right
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
-
-		// get right vector 
-		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-		// add movement in that direction
-		AddMovementInput(Direction, Value);
-	}
-}
-
 void AUsedArenaCharacter::ServerTryToMagnifyMe_Implementation()
 {
 
 	MulticastTryToMagnifyMe();
-	
-}
 
+}
 void AUsedArenaCharacter::ServerResetMe_Implementation()
 {
 	MulticastTryToRestMe();
-	
-}
 
+}
+void AUsedArenaCharacter::ResetMe()
+{
+	ServerResetMe();
+}
 void AUsedArenaCharacter::MulticastTryToRestMe_Implementation()
 {
 	MagnifiedMe = false;
 	this->SetActorRelativeScale3D(FVector(1));
 }
-
 void AUsedArenaCharacter::MulticastTryToMagnifyMe_Implementation()
 {
 
@@ -541,5 +416,93 @@ void AUsedArenaCharacter::MulticastTryToMagnifyMe_Implementation()
 		this->SetActorRelativeScale3D(FVector(RelativeScalingMe3DCoe));
 		GetWorld()->GetTimerManager().SetTimer(BiggerMeTimer, this, &AUsedArenaCharacter::ResetMe, TimeToResetMe, false, -1);
 
+	}
+}
+//make the ball bigger
+void AUsedArenaCharacter::TryToMagnifyTheBall()
+{
+
+	ServerTryToMagnifyTheBall();
+}
+void AUsedArenaCharacter::ResetTheBall()
+{
+	ServerResetTheBall();
+
+}
+
+//Input
+void AUsedArenaCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
+{
+	// Set up gameplay key bindings
+	check(PlayerInputComponent);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction("ForcePush", IE_Pressed, this, &AUsedArenaCharacter::ForcePush);
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AUsedArenaCharacter::SprintStart);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AUsedArenaCharacter::SprintEnd);
+	PlayerInputComponent->BindAction("UseItem", IE_Pressed, this, &AUsedArenaCharacter::UseItem);
+	PlayerInputComponent->BindAction("Boost", IE_Pressed, this, &AUsedArenaCharacter::BoostYourSpeed);
+	PlayerInputComponent->BindAction("Bigger", IE_Pressed, this, &AUsedArenaCharacter::TryToManifyMe);
+	PlayerInputComponent->BindAxis("Move Forward / Backward", this, &AUsedArenaCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("Move Right / Left", this, &AUsedArenaCharacter::MoveRight);
+
+	PlayerInputComponent->BindAction("FireBeam", IE_Pressed, this, &AUsedArenaCharacter::FireBeam);
+	PlayerInputComponent->BindAction("MagnifyTheBall", IE_Pressed, this, &AUsedArenaCharacter::TryToMagnifyTheBall);
+	PlayerInputComponent->BindAction("Scan", IE_Pressed, this, &AUsedArenaCharacter::Scan);
+	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
+	// "turn" handles devices that provide an absolute delta, such as a mouse.
+	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
+	PlayerInputComponent->BindAxis("Turn Right / Left Mouse", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("Turn Right / Left Gamepad", this, &AUsedArenaCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("Look Up / Down Mouse", this, &APawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("Look Up / Down Gamepad", this, &AUsedArenaCharacter::LookUpAtRate);
+
+	// handle touch devices
+	PlayerInputComponent->BindTouch(IE_Pressed, this, &AUsedArenaCharacter::TouchStarted);
+	PlayerInputComponent->BindTouch(IE_Released, this, &AUsedArenaCharacter::TouchStopped);
+}
+void AUsedArenaCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	Jump();
+}
+void AUsedArenaCharacter::TouchStopped(ETouchIndex::Type FingerIndex, FVector Location)
+{
+	StopJumping();
+}
+void AUsedArenaCharacter::TurnAtRate(float Rate)
+{
+	// calculate delta for this frame from the rate information
+	AddControllerYawInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
+}
+void AUsedArenaCharacter::LookUpAtRate(float Rate)
+{
+	// calculate delta for this frame from the rate information
+	AddControllerPitchInput(Rate * TurnRateGamepad * GetWorld()->GetDeltaSeconds());
+}
+void AUsedArenaCharacter::MoveForward(float Value)
+{
+	if ((Controller != nullptr) && (Value != 0.0f))
+	{
+		// find out which way is forward
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+		// get forward vector
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		AddMovementInput(Direction, Value);
+	}
+}
+void AUsedArenaCharacter::MoveRight(float Value)
+{
+	if ((Controller != nullptr) && (Value != 0.0f))
+	{
+		// find out which way is right
+		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator YawRotation(0, Rotation.Yaw, 0);
+
+		// get right vector 
+		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		// add movement in that direction
+		AddMovementInput(Direction, Value);
 	}
 }

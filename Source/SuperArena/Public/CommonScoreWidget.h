@@ -2,42 +2,41 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
-#include "Components/TextBlock.h"
 #include "ArenaGameState.h"
+#include "Blueprint/UserWidget.h"
 #include "CommonScoreWidget.generated.h"
+#include "Components/TextBlock.h"
+#include "CoreMinimal.h"
 
 /**
- * 
+ *
  */
 UCLASS(ABSTRACT)
-class SUPERARENA_API UCommonScoreWidget : public UUserWidget
-{
-	GENERATED_BODY()
-
+class SUPERARENA_API UCommonScoreWidget : public UUserWidget {
+  GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere)
-		UTextBlock* TeamOneScoreRef;
+  UPROPERTY(EditAnywhere)
+  UTextBlock *TeamOneScoreRef;
 
-	UPROPERTY(EditAnywhere)
-		UTextBlock* TeamTwoScoreRef;
-	
-	virtual void NativeConstruct() override;
-	
-	UFUNCTION(BlueprintCallable)
-		void RealInit();
-	UFUNCTION(BlueprintCallable)
-		void RealTick();
+  UPROPERTY(EditAnywhere)
+  UTextBlock *TeamTwoScoreRef;
 
-	virtual void NativeTick(const FGeometry& WidgetGeometry, float IndeltaTime) override;
-	UFUNCTION(BlueprintCallable)
-	void SetTextRef(UTextBlock* inputOne, UTextBlock* inputTwo)
-	{
-		TeamOneScoreRef = inputOne;
-		TeamTwoScoreRef = inputTwo;
-	}
+  virtual void NativeConstruct() override;
+
+  UFUNCTION(BlueprintCallable)
+  void RealInit();
+  UFUNCTION(BlueprintCallable)
+  void RealTick();
+
+  virtual void NativeTick(const FGeometry &WidgetGeometry,
+                          float IndeltaTime) override;
+  UFUNCTION(BlueprintCallable)
+  void SetTextRef(UTextBlock *inputOne, UTextBlock *inputTwo) {
+    TeamOneScoreRef = inputOne;
+    TeamTwoScoreRef = inputTwo;
+  }
+
 protected:
-	AArenaGameState* GameStateOfGame;
+  AArenaGameState *GameStateOfGame;
 };
